@@ -115,11 +115,22 @@ class _MyButtonState extends State<MyButton> {
   @override
   void initState() {
     super.initState();
+  }
+
+
+
+  @override
+  void didUpdateWidget(MyButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
     setButtonTheme();
     setButtonSize();
+
     if(!widget.loading && !widget.disabled){
       onPress = widget.onClick;
+    }else{
+      onPress = null;
     }
+
     if(widget.block){
       _mainAxisSize = MainAxisSize.max;
     }

@@ -51,4 +51,20 @@ class Utils {
 
   }
 
+
+  // 将数字补零
+  static setNumber(int num){
+    if(num < 10){
+      return '0'+num.toString();
+    }else{
+      return num.toString();
+    }
+  }
+
+  // 给定一个日期，返回该月的天数
+  static int getMonthLength(DateTime dateTime){
+
+
+  }
+
 }

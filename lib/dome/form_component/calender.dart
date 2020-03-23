@@ -1,5 +1,4 @@
-import 'dart:core';
-import 'dart:core' as prefix0;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_app/dome/basicWidget/button.dart';
 
@@ -13,17 +12,31 @@ enum CalenderType {
 class Calendar {
 
 
-  static Future<int> show(
+  static Future<List<DateTime>> show(
       BuildContext context,
       {
         DateTime minDate,
         DateTime maxDate,
-        CalenderType type = CalenderType.single
+        CalenderType type = CalenderType.single,
+        Color color = const Color(0xffee0a24),
+        bool showConfirm = true,
+        String confirmText = "确定",
+        String confirmDisabledText = "确定",
+        List<DateTime> initDate,
       }){
     DateTime _minDate = minDate?? DateTime.now();
     DateTime _maxDate = maxDate?? _minDate.add(Duration(days: 365));
     assert(_maxDate.isAfter(_minDate));
-    return showModalBottomSheet<int>(
+    if(type == CalenderType.range){
+      assert(initDate == null || initDate.length == 2);
+      if(initDate != null && initDate.length == 2){
+        assert(initDate[0].isBefore(initDate[1]));
+      }
+    }
+    if(type == CalenderType.single){
+      assert(initDate == null || initDate.length == 1);
+    }
+    return showModalBottomSheet<List<DateTime>>(
         context: context,
         backgroundColor: Colors.white,
         isScrollControlled: true,
@@ -40,6 +53,11 @@ class Calendar {
               maxDate: _maxDate,
               minDate: _minDate,
               type: type,
+              color: color,
+              showConfirm: showConfirm,
+              confirmText: confirmText,
+              confirmDisabledText: confirmDisabledText,
+              initDate:initDate,
             ),
           );
         }
@@ -56,11 +74,21 @@ class CalendarBox extends StatefulWidget {
     this.minDate,
     this.maxDate,
     this.type,
+    this.color,
+    this.showConfirm,
+    this.confirmText,
+    this.confirmDisabledText,
+    this.initDate,
   }):super(key: key);
 
   final DateTime minDate;
   final DateTime maxDate;
   final CalenderType type;
+  final Color color;
+  final bool showConfirm;
+  final String confirmText;
+  final String confirmDisabledText;
+  final List<DateTime> initDate;
 
   @override
   _CalendarBoxState createState() => _CalendarBoxState();
@@ -89,12 +117,19 @@ class _CalendarBoxState extends State<CalendarBox> {
                     type: widget.type,
                     selectedDateList: selectedDateList,
                     onClick: onClick,
+                    color: widget.color,
                   );
                 },
               ),
             ),
           ),
-          footer()
+          (){
+            if(widget.showConfirm){
+              return footer();
+            }else{
+              return Container();
+            }
+          }()
         ],
       ),
     );
@@ -155,13 +190,26 @@ class _CalendarBoxState extends State<CalendarBox> {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
       child: MyButton(
-        type: ButtonType.danger,
+        color: widget.color,
         size: ButtonSize.normal,
         shape: ShapeType.round,
         block: true,
-        text: '确定',
+        disabled: disabled,
+        text: buttonText,
         onClick: (){
+          List<DateTime> result = [];
+          if(widget.type == CalenderType.range){
+            DateTime startTime = selectedDateList[0];
+            DateTime endTime = selectedDateList[1];
 
+            while(startTime.isBefore(endTime) || startTime == endTime){
+              result.add(startTime);
+              startTime = startTime.add(Duration(days: 1));
+            }
+          }else{
+            result = selectedDateList;
+          }
+          Navigator.of(context).pop(result);
         },
       ),
     );
@@ -175,6 +223,8 @@ class _CalendarBoxState extends State<CalendarBox> {
   String weekTime;
   /// 单选模式存储位置
   List<DateTime> selectedDateList = [];
+  bool disabled = false;
+  String buttonText = "确定";
 
 
   DateTime startTime;
@@ -185,6 +235,9 @@ class _CalendarBoxState extends State<CalendarBox> {
     super.initState();
     _controller.addListener(scrollListen);
     initTime();
+    initValue();
+
+
 
   }
 
@@ -233,6 +286,20 @@ class _CalendarBoxState extends State<CalendarBox> {
     setState(() {});
   }
 
+  void initValue(){
+    buttonText = widget.confirmText;
+    selectedDateList = widget.initDate?? [];
+    if(widget.type == CalenderType.range){
+      if(widget.initDate == null){
+        DateTime startTime = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+        DateTime endTime = startTime.add(Duration(days: 1));
+        selectedDateList.clear();
+        selectedDateList.addAll([startTime, endTime]);
+        print(selectedDateList);
+      }
+    }
+  }
+
   void onClick(date){
 
     switch(widget.type){
@@ -271,7 +338,11 @@ class _CalendarBoxState extends State<CalendarBox> {
     if(selectedDateList.length == 0 || selectedDateList.length == 2){
       selectedDateList.clear();
       selectedDateList.add(date);
+      disabled = true;
+      buttonText = widget.confirmDisabledText;
     }else{
+      disabled = false;
+      buttonText = widget.confirmText;
       DateTime startTime = selectedDateList[0];
       if(startTime.isAfter(date)){
         selectedDateList.clear();
@@ -295,6 +366,7 @@ class MonthDetail extends StatelessWidget {
     this.onClick,
     this.type,
     this.selectedDateList,
+    this.color,
   });
 
   final double viewPortWidth;
@@ -303,6 +375,7 @@ class MonthDetail extends StatelessWidget {
   final Function onClick;
   final CalenderType type;
   final List<DateTime> selectedDateList;
+  final Color color;
 
 
   @override
@@ -360,7 +433,7 @@ class MonthDetail extends StatelessWidget {
 
   Widget day(int day){
     DateTime time = DateTime(date.date.year, date.date.month, day);
-    MyDayStyle myDayStyle = MyDayStyle(time: time, selectedDateList: selectedDateList, type: type);
+    MyDayStyle myDayStyle = MyDayStyle(time: time, selectedDateList: selectedDateList, type: type, color: color);
     return GestureDetector(
       onTap: (){
         DateTime time = DateTime(date.date.year, date.date.month, day);
@@ -440,13 +513,14 @@ class MyDate {
 
 class MyDayStyle{
 
-  MyDayStyle({this.time, this.selectedDateList, this.type}){
+  MyDayStyle({this.time, this.selectedDateList, this.type, this.color}){
     init();
   }
 
   final DateTime time;
   final List<DateTime> selectedDateList;
   final CalenderType type;
+  final Color color;
 
   double opacity = 0.0;
   String text = '';
@@ -458,7 +532,7 @@ class MyDayStyle{
       case CalenderType.single:
         if(selectedDateList.indexOf(time) > -1){
           boxDecoration = BoxDecoration(
-              color: Color(0xffee0a24),
+              color: color,
               borderRadius: BorderRadius.all(Radius.circular(4.0))
           );
           textStyle = TextStyle(
@@ -481,7 +555,7 @@ class MyDayStyle{
             radius = BorderRadius.all(Radius.circular(4.0));
           }
           boxDecoration = BoxDecoration(
-              color: Color(0xffee0a24),
+              color: color,
               borderRadius: radius
           );
           textStyle = TextStyle(
@@ -493,7 +567,7 @@ class MyDayStyle{
         if(selectedDateList.length == 1){
           if(selectedDateList.indexOf(time) > -1){
             boxDecoration = BoxDecoration(
-                color: Color(0xffee0a24),
+                color: color,
                 borderRadius: BorderRadius.all(Radius.circular(4.0))
             );
             textStyle = TextStyle(
@@ -505,14 +579,14 @@ class MyDayStyle{
         }else if(selectedDateList.length == 2){
           if(time.isAfter(selectedDateList[0])  && time.isBefore(selectedDateList[1])){
             boxDecoration = BoxDecoration(
-              color: Color(0xffee0a24).withOpacity(0.1),
+              color: color.withOpacity(0.1),
             );
             textStyle = TextStyle(
-                color: Color(0xffee0a24)
+                color: color
             );
           }else if(time == selectedDateList[0]){
             boxDecoration = BoxDecoration(
-                color: Color(0xffee0a24),
+                color: color,
                 borderRadius: BorderRadius.only(bottomLeft: Radius.circular(4.0), topLeft: Radius.circular(4.0))
             );
             textStyle = TextStyle(
@@ -522,7 +596,7 @@ class MyDayStyle{
             text = "开始";
           }else if(time == selectedDateList[1]){
             boxDecoration = BoxDecoration(
-                color: Color(0xffee0a24),
+                color: color,
                 borderRadius: BorderRadius.only(bottomRight: Radius.circular(4.0), topRight: Radius.circular(4.0))
             );
             textStyle = TextStyle(

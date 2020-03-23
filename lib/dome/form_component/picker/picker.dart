@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'util.dart';
+import '../../util.dart';
 import 'dataModel.dart';
 
 typedef PickChange = Function(List result);
@@ -26,7 +26,7 @@ class Picker extends StatefulWidget {
   final List<dynamic> columns;
   final List<int> initValue;
   final PickerThemeData pickerThemeData;
-  final bool showToolbar;  // 是否展示顶部操栏
+  final showToolbar;  // 是否展示顶部操栏
   final String title;
   final StatelessBuilder titleBuilder;
   final PickChange onChange;
@@ -144,17 +144,32 @@ class _PickerState extends State<Picker> {
     init();
   }
 
+  @override
+  void didChangeDependencies() {
+    // TODO: implement didChangeDependencies
+    super.didChangeDependencies();
+    print("didChangeDependencies");
+  }
+
+  @override
+  void didUpdateWidget(Picker oldWidget) {
+    // TODO: implement didUpdateWidget
+    super.didUpdateWidget(oldWidget);
+    print("didUpdateWidget");
+    init();
+  }
+
   void init(){
-    print(this.widget.columns);
     if(this.widget.columns is List<ObjectPicker>){
       initObjectPicker();
-
     }else{
       initObjectCascadePicker();
     }
   }
 
   void initObjectPicker(){
+    pickerItemList = [];
+    _scrollControlers = [];
     for(var i = 0; i < widget.columns.length; i++){
       int index = widget.initValue[i];
       ObjectPicker item = widget.columns[i];
@@ -208,7 +223,7 @@ class _PickerState extends State<Picker> {
   void scrollListenEvent(int index){
     _scrollControllesIndex = index;
     Function setResultsEvent;
-    if(this.widget.columns is List<ObjectPicker>){
+    if(widget.columns is List<ObjectPicker>){
       setResultsEvent = setResults;
     }else{
       setResultsEvent = setResults1;
@@ -224,6 +239,7 @@ class _PickerState extends State<Picker> {
       'value': widget.columns[_scrollControllesIndex].values[selectedItem]
     };
     results.fillRange(_scrollControllesIndex, _scrollControllesIndex+1, resultItem);
+
     if(widget.onChange != null){
       widget.onChange(results);
     }
@@ -320,6 +336,14 @@ class _MyPickerState extends State<MyPicker> {
         widget.onChange(widget.data[_index], _index);
       };
     }
+  }
+
+  @override
+  void didUpdateWidget(MyPicker oldWidget) {
+    // TODO: implement didUpdateWidget
+    super.didUpdateWidget(oldWidget);
+    print("......");
+    print(widget.data);
   }
 }
 

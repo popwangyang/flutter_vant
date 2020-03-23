@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
           primaryColor: Colors.lightBlue[600],
           accentColor: Colors.orange[600]
         ),
-        home: ButDome(),
+        home: DomePage(),
       ),
     );
   }
